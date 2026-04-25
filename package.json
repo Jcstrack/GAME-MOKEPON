@@ -1,13 +1,13 @@
 {
   "name": "mokepon",
   "version": "1.0.0",
-  "description": "",
+  "description": "Juego multijugador de Mokepon con Node.js, Express y Canvas.",
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

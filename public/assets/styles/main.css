@@ -12,7 +12,7 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100dvh;
-  background: url("../img/Pinwheel-Forest_wallpaper-1920x1080.jpg") no-repeat
+  background: url("../images/Pinwheel-Forest_wallpaper-1920x1080.jpg") no-repeat
     center / cover;
   gap: 20px;
   padding: 30px 20px;

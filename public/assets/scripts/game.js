@@ -1,5 +1,15 @@
+/*
+FLUJO GENERAL DEL FRONTEND
+1. El jugador entra al juego y se une al servidor con /unirse.
+2. Elige una mascota y la enviamos al backend.
+3. En el mapa enviamos posicion constantemente y dibujamos enemigos recibidos del servidor.
+4. Si dos jugadores colisionan, ambos entran al mismo combate.
+5. Cada jugador envia sus 5 ataques y espera al rival.
+6. Cuando ambos terminan, se resuelve el combate y se muestra el resultado.
+*/
+
 /// =========================
-/// VARIABLES GLOBALES
+/// VARIABLES GLOBALES Y REFERENCIAS DEL DOM
 /// =========================
 
 // Secciones principales de la interfaz
@@ -13,6 +23,7 @@ const contenedorAtaques = $("#contenedor-ataques");
 
 // Botones fijos del juego
 const botonMascota = $("#boton-mascota");
+const botonContinuar = $("#boton-continuar");
 const botonReiniciar = $("#boton-reiniciar");
 const mensajeFinalElem = $("#mensaje-final");
 
@@ -25,7 +36,7 @@ const ataquesSection = $("#ataques");
 const victoriasJugadorElem = $("#vidas-jugador");
 const victoriasEnemigoElem = $("#vidas-enemigo");
 
-// constante que guardará información de sección ver mapa
+// Referencias a la seccion del mapa y al canvas donde se dibuja todo
 const sectionVerMapa = $("#ver-mapa");
 const mapa = $("#mapa");
 
@@ -33,7 +44,7 @@ const mapa = $("#mapa");
 let ataqueJugador = [];
 let ataqueEnemigo = [];
 
-// Aquí se guardarán los ataques de la mascota enemiga
+// Aqui se guardaran los ataques base del mokepon enemigo dentro de un combate
 let ataqueMokeponEnemigo;
 
 // Variables para construir HTML dinámico
@@ -45,7 +56,7 @@ let inputHipodoge;
 let inputCapipepo;
 let inputRatigueya;
 
-// Aquí se guardan todos los botones de ataque generados dinámicamente
+// Aqui se guardan todos los botones de ataque generados dinamicamente
 let botones = [];
 
 // Guarda la mascota elegida por el jugador
@@ -56,7 +67,7 @@ let enemigoId = null;
 // Guarda la promesa del fetch inicial para poder esperar el id antes de enviar el mokepon
 let promesaJugadorId = null;
 
-// Contadores de victorias
+// Marcador local del combate actual
 let victoriaJugador = 0;
 let victoriaEnemigo = 0;
 
@@ -66,17 +77,24 @@ let mokepones = [];
 let mokeponesEnemigos = [];
 // Este flag evita que el combate se abra varias veces o solo se inicie localmente sin control.
 let combateIniciado = false;
+// Evita enviar varias solicitudes de colision mientras el servidor aun esta respondiendo.
+let colisionEnProceso = false;
 
-// lienzo para dibujar dentro del canvas
+// Contexto 2D del canvas, necesario para dibujar el mapa y los personajes
 let lienzo = mapa.getContext("2d");
+// Intervalo principal del mapa
 let intervalo;
+// Intervalo que consulta si el rival ya envio sus 5 ataques
 let intervaloAtaques = null;
+// Intervalo que revisa si despues de una victoria todavia hay enemigos vivos
+let intervaloContinuar = null;
 
 // Creamos la imagen de fondo que se dibujara dentro del canvas del mapa
 let mapaBackground = new Image();
-// La ruta ahora apunta a la carpeta img tomando como base el HTML servido por Express
-mapaBackground.src = "./img/mokemap.png";
+// La ruta absoluta evita errores al cargar imagenes desde la nueva estructura public/assets.
+mapaBackground.src = "/assets/images/mokemap.png";
 
+// Ajustamos el tamaño del mapa para que no crezca demasiado en pantallas grandes.
 let alturaQueBuscamos;
 let anchoDelMapa = window.innerWidth - 20;
 const anchoMaximoDelMapa = 350;
@@ -95,6 +113,12 @@ mapa.height = alturaQueBuscamos;
 /// =========================
 
 class Mokepon {
+  /*
+  nombre: texto visible del personaje
+  img: ruta de la imagen del personaje
+  vidas: valor base que se muestra en el combate
+  id: se usa sobre todo cuando el enemigo llega desde el backend
+  */
   constructor(nombre, img, vidas, x, y, id = null) {
     this.id = id;
     this.nombre = nombre;
@@ -102,21 +126,25 @@ class Mokepon {
     this.vidas = vidas;
     this.ataques = [];
 
-    // ✅ PRIMERO tamaño
+    // Tamaño con el que se dibuja dentro del mapa.
     this.ancho = 40;
     this.alto = 40;
 
-    // ✅ DESPUÉS posición aleatoria
+    // La mascota del jugador nace en una posicion aleatoria.
+    // En los enemigos recibidos desde el backend, luego sobrescribimos x e y con la posicion real.
     this.x = aleatorio(0, mapa.width - this.ancho);
     this.y = aleatorio(0, mapa.height - this.alto);
 
+    // Imagen que se pinta dentro del canvas.
     this.mapaFoto = new Image();
     this.mapaFoto.src = img;
 
+    // Velocidad actual en cada eje. Cambia con teclado o botones tactiles.
     this.velocidadX = 0;
     this.velocidadY = 0;
   }
 
+  // Dibuja el personaje en el canvas usando su posicion actual.
   pintarMokepon() {
     lienzo.drawImage(this.mapaFoto, this.x, this.y, this.ancho, this.alto);
   }
@@ -126,10 +154,10 @@ class Mokepon {
 /// CREACIÓN DE MOKEPONES
 /// =========================
 
-// Estas rutas tambien se resuelven desde mokepon.html, por eso usamos ./img
-let hipodoge = new Mokepon("Hipodoge", "./img/Hipodoge.png", 5);
-let capipepo = new Mokepon("Capipepo", "./img/Capipepo.png", 5);
-let ratigueya = new Mokepon("Ratigueya", "./img/Ratigueya.png", 5);
+// Estas imagenes ahora se sirven desde public/assets/images.
+let hipodoge = new Mokepon("Hipodoge", "/assets/images/Hipodoge.png", 5);
+let capipepo = new Mokepon("Capipepo", "/assets/images/Capipepo.png", 5);
+let ratigueya = new Mokepon("Ratigueya", "/assets/images/Ratigueya.png", 5);
 
 /// =========================
 /// ATAQUES DE CADA MOKEPON
@@ -175,14 +203,18 @@ function $(qSelector) {
   return document.querySelector(qSelector);
 }
 
+// Devuelve un numero entero aleatorio dentro del rango indicado.
 function aleatorio(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
+// Busca un mokepon local por nombre para recuperar su informacion base y sus ataques.
 function obtenerMokeponPorNombre(nombre) {
   return mokepones.find((mokepon) => mokepon.nombre === nombre);
 }
 
+// Convierte la informacion de un jugador recibida desde el backend en un Mokepon dibujable.
+// El servidor no envia metodos ni imagenes listas para usar en canvas; aqui completamos esa parte local.
 function crearMokeponEnemigoDesdeJugador(jugador) {
   if (
     !jugador ||
@@ -197,11 +229,11 @@ function crearMokeponEnemigoDesdeJugador(jugador) {
   const mokeponNombre = jugador.mokepon.nombre || "";
 
   if (mokeponNombre === "Hipodoge") {
-    mokeponEnemigo = new Mokepon("Hipodoge", "./img/Hipodoge.png", 5);
+    mokeponEnemigo = new Mokepon("Hipodoge", "/assets/images/Hipodoge.png", 5);
   } else if (mokeponNombre === "Capipepo") {
-    mokeponEnemigo = new Mokepon("Capipepo", "./img/Capipepo.png", 5);
+    mokeponEnemigo = new Mokepon("Capipepo", "/assets/images/Capipepo.png", 5);
   } else if (mokeponNombre === "Ratigueya") {
-    mokeponEnemigo = new Mokepon("Ratigueya", "./img/Ratigueya.png", 5);
+    mokeponEnemigo = new Mokepon("Ratigueya", "/assets/images/Ratigueya.png", 5);
   }
 
   if (!mokeponEnemigo) {
@@ -210,6 +242,7 @@ function crearMokeponEnemigoDesdeJugador(jugador) {
 
   mokeponEnemigo.x = jugador.x;
   mokeponEnemigo.y = jugador.y;
+  // Reutilizamos el id remoto para saber exactamente con quien estamos peleando.
   mokeponEnemigo.id = jugador.id;
 
   return mokeponEnemigo;
@@ -220,9 +253,12 @@ function crearMokeponEnemigoDesdeJugador(jugador) {
 /// =========================
 
 function iniciarJuego() {
+  // El mapa y los botones finales empiezan ocultos hasta que el jugador elija mascota.
   sectionVerMapa.setAttribute("hidden", true);
+  botonContinuar.setAttribute("hidden", true);
   botonReiniciar.setAttribute("hidden", true);
 
+  // Creamos las tarjetas HTML de las mascotas disponibles.
   mokepones.forEach((mokepon) => {
     opcionDeMokepones = `
       <input id="${mokepon.nombre}" type="radio" name="mascota" />
@@ -238,7 +274,9 @@ function iniciarJuego() {
   inputCapipepo = $("#Capipepo");
   inputRatigueya = $("#Ratigueya");
 
+  // Registramos los eventos principales del juego.
   botonMascota.addEventListener("click", seleccionarMascotaJugador);
+  botonContinuar.addEventListener("click", continuarJugando);
   botonReiniciar.addEventListener("click", reiniciarJuego);
 
   // Guardamos esta promesa para poder esperar el jugadorId antes de enviar datos importantes al backend
@@ -246,6 +284,7 @@ function iniciarJuego() {
 }
 
 async function unirseAlJuego() {
+  // Esta es la primera conexion al backend. Sin este id no se puede guardar posicion ni ataques.
   // Forzamos al navegador a no reutilizar una respuesta cacheada para que cada pestaña obtenga un jugador distinto
   const res = await fetch(`/unirse?nocache=${Date.now()}-${Math.random()}`, {
     cache: "no-store",
@@ -265,6 +304,7 @@ async function unirseAlJuego() {
 /// =========================
 
 async function seleccionarMascotaJugador() {
+  // Identificamos cual radio button fue elegido y enlazamos su objeto local.
   if (inputHipodoge.checked) {
     spanMascotaJugador.textContent = inputHipodoge.id;
     mascotaJugador = hipodoge;
@@ -286,13 +326,13 @@ async function seleccionarMascotaJugador() {
 
   await seleccionarMokepon(mascotaJugador);
 
-  // Sacamos los ataques de la mascota elegida
+  // Sacamos los ataques base de la mascota elegida para construir los botones del combate.
   extraerAtaques(mascotaJugador.nombre);
 
-  // Mostramos mapa
+  // Mostramos el mapa una vez que la mascota ya esta registrada en el servidor.
   sectionVerMapa.removeAttribute("hidden");
 
-  // Ocultamos la sección de selección de mascota
+  // Ocultamos la seccion inicial porque a partir de aqui el flujo ya sigue en el mapa.
   sectionMascota.setAttribute("hidden", true);
 
   iniciarMapa();
@@ -311,7 +351,7 @@ async function seleccionarMokepon(mokepon) {
 
   await fetch(`/mokepon/${jugadorId}`, {
     method: "POST",
-    // La propiedad correcta es headers, en plural; asi Express puede leer el JSON del body
+    // Express lee este JSON gracias al middleware express.json() del backend.
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       // Enviamos solo el nombre porque el backend actual crea un nuevo objeto Mokepon a partir de ese texto.
@@ -327,6 +367,7 @@ async function seleccionarMokepon(mokepon) {
 function extraerAtaques(mascota) {
   let ataques;
 
+  // Recorremos el catalogo local hasta encontrar la mascota seleccionada.
   for (let i = 0; i < mokepones.length; i++) {
     if (mokepones[i].nombre === mascota) {
       ataques = mokepones[i].ataques;
@@ -343,6 +384,7 @@ function extraerAtaques(mascota) {
 function mostrarAtaques(listaAtaques) {
   contenedorAtaques.innerHTML = "";
 
+  // Cada ataque se representa como un boton visual dentro de la interfaz.
   listaAtaques.forEach(({ id, clase, nombre }) => {
     opcionDeAtaques = `<button id="${id}" class="BAtaque ${clase}">${nombre}</button>`;
     contenedorAtaques.innerHTML += opcionDeAtaques;
@@ -356,6 +398,7 @@ function mostrarAtaques(listaAtaques) {
 /// =========================
 
 function seleccionarMascotaEnemigo(enemigo) {
+  // El enemigo llega desde el backend porque es el jugador real con el que hubo colision.
   const mokeponEnemigo = obtenerMokeponPorNombre(enemigo.nombre);
 
   if (!mokeponEnemigo) {
@@ -367,7 +410,11 @@ function seleccionarMascotaEnemigo(enemigo) {
   }
 
   spanMascotaEnemigo.textContent = mokeponEnemigo.nombre;
+  // Copiamos los ataques base del rival por si luego se necesita esa referencia local.
   ataqueMokeponEnemigo = [...mokeponEnemigo.ataques];
+  // Volvemos a dibujar los botones para que una nueva batalla no reutilice listeners viejos.
+  mostrarAtaques(mascotaJugador.ataques);
+  // Entramos visualmente a la pantalla de combate.
   activarSectionAtaque();
   secuenciaAtaque();
 }
@@ -375,19 +422,25 @@ function seleccionarMascotaEnemigo(enemigo) {
 function iniciarCombateConEnemigo(enemigo) {
   if (combateIniciado) return;
 
+  // Desde este momento la sesion entra formalmente en combate y detiene el mapa.
   combateIniciado = true;
   // Guardamos el id del enemigo real para luego consultar sus ataques al backend.
   enemigoId = enemigo.id;
+  // El personaje deja de moverse y el mapa deja de actualizarse.
   detenerMovimiento();
   clearInterval(intervalo);
   seleccionarMascotaEnemigo(enemigo);
+  // Ocultamos el mapa para concentrar la interfaz en la pelea.
   sectionVerMapa.setAttribute("hidden", true);
 }
 
 function notificarColision(enemigoId) {
-  if (!jugadorId || !enemigoId) return;
+  if (!jugadorId || !enemigoId) {
+    return Promise.resolve(false);
+  }
 
-  fetch(`/mokepon/${jugadorId}/colision`, {
+  // Avisamos al backend para que ambas ventanas compartan el mismo enemigoId.
+  return fetch(`/mokepon/${jugadorId}/colision`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -395,9 +448,15 @@ function notificarColision(enemigoId) {
     body: JSON.stringify({
       enemigoId,
     }),
-  }).catch(function (error) {
-    console.error("No se pudo sincronizar la colision:", error);
-  });
+  })
+    .then(function (res) {
+      // Solo iniciamos el combate local si el servidor acepta esa colision.
+      return res.ok;
+    })
+    .catch(function (error) {
+      console.error("No se pudo sincronizar la colision:", error);
+      return false;
+    });
 }
 
 /// =========================
@@ -407,6 +466,7 @@ function notificarColision(enemigoId) {
 function secuenciaAtaque() {
   botones.forEach((boton) => {
     boton.addEventListener("click", (e) => {
+      // Traducimos el emoji pulsado a un texto simple que el combate pueda comparar despues.
       if (e.target.textContent === "🔥") {
         ataqueJugador.push("FUEGO");
       } else if (e.target.textContent === "💧") {
@@ -418,8 +478,8 @@ function secuenciaAtaque() {
       boton.style.background = "#112f58";
       boton.disabled = true;
 
-      // ataqueAleatorioEnemigo();
-
+      // El jugador solo puede completar una secuencia de 5 ataques por combate.
+      // Cuando ya hay 5 ataques, enviamos la jugada completa al backend.
       if (ataqueJugador.length === 5) {
         enviarAtaques();
       }
@@ -428,6 +488,7 @@ function secuenciaAtaque() {
 }
 
 function enviarAtaques() {
+  // Enviamos la jugada completa del jugador actual.
   fetch(`/mokepon/${jugadorId}/ataques`, {
     method: "POST",
     headers: {
@@ -437,6 +498,7 @@ function enviarAtaques() {
       ataques: ataqueJugador,
     }),
   }).then(function () {
+    // Desde este punto ya no falta nada del lado local; solo esperar lo que haga el rival.
     mostrarMensajeEstado(
       "Ya hiciste tu jugada. El otro jugador todavia no termina sus ataques.",
     );
@@ -451,10 +513,12 @@ function enviarAtaques() {
 function obtenerAtaques() {
   if (!jugadorId || !enemigoId) return;
 
+  // Consultamos constantemente al servidor hasta que el enemigo termine sus 5 ataques.
   fetch(`/mokepon/${jugadorId}/ataques`)
     .then(function (res) {
       if (res.ok) {
         res.json().then(function ({ ataques }) {
+          // Mientras el servidor siga devolviendo un arreglo vacio, el rival aun no termina.
           // Esperamos hasta que el otro jugador complete sus 5 ataques antes de resolver el combate.
           if (ataques.length === 5) {
             ataqueEnemigo = ataques;
@@ -473,6 +537,9 @@ function obtenerAtaques() {
 /// =========================
 /// ATAQUE ALEATORIO DEL ENEMIGO
 /// =========================
+
+// Esta funcion pertenece al flujo antiguo local. La dejamos por compatibilidad, aunque
+// el proyecto actual usa ataques sincronizados por backend con obtenerAtaques().
 
 function ataqueAleatorioEnemigo() {
   let indiceAleatorio = aleatorio(0, ataqueMokeponEnemigo.length - 1);
@@ -494,6 +561,7 @@ function ataqueAleatorioEnemigo() {
 function iniciarPelea() {
   // El combate solo debe empezar cuando ambos jugadores ya terminaron sus 5 movimientos.
   if (ataqueJugador.length === 5 && ataqueEnemigo.length === 5) {
+    // Recien aqui ya tenemos las dos secuencias completas y comparables.
     combate();
   }
 }
@@ -503,6 +571,7 @@ function iniciarPelea() {
 /// =========================
 
 function combate() {
+  // Limpiamos el historial visual anterior para mostrar solo el resultado de esta pelea.
   ataqueJugadorElem.innerHTML = "";
   ataqueEnemigoElem.innerHTML = "";
 
@@ -513,14 +582,16 @@ function combate() {
     mostrarAtaquesCombate(ataqueActualJugador, ataqueActualEnemigo);
 
     if (ataqueActualJugador === ataqueActualEnemigo) {
-      // Empate
+      // Si ambos ataques son iguales, nadie gana punto en esta ronda.
     } else if (
       (ataqueActualJugador === "AGUA" && ataqueActualEnemigo === "FUEGO") ||
       (ataqueActualJugador === "FUEGO" && ataqueActualEnemigo === "TIERRA") ||
       (ataqueActualJugador === "TIERRA" && ataqueActualEnemigo === "AGUA")
     ) {
+      // Estas son las combinaciones donde el jugador local gana la ronda.
       victoriaJugador++;
     } else {
+      // Si no gana el jugador, entonces gana el enemigo.
       victoriaEnemigo++;
     }
   }
@@ -536,9 +607,11 @@ function combate() {
 /// =========================
 
 function revisarVidas() {
+  // Aunque el nombre venga del curso, aqui realmente se decide el ganador por cantidad de rondas ganadas.
   if (victoriaJugador > victoriaEnemigo) {
     notificarResultadoCombate("ganador");
     crearMensajeFinal("🎉 ¡FELICIDADES! GANASTE EL JUEGO 🎉");
+    esperarOpcionDeContinuar();
   } else if (victoriaEnemigo > victoriaJugador) {
     notificarResultadoCombate("perdedor");
     crearMensajeFinal("☠️ LO SIENTO, PERDISTE EL JUEGO ☠️");
@@ -548,7 +621,9 @@ function revisarVidas() {
   }
 
   sectionReiniciar.removeAttribute("hidden");
+  botonContinuar.setAttribute("hidden", true);
   botonReiniciar.removeAttribute("hidden");
+  // Una vez resuelto el combate, ya no debe ser posible seguir pulsando ataques viejos.
   desactivarBotonesAtaque();
 }
 
@@ -557,6 +632,7 @@ function revisarVidas() {
 /// =========================
 
 function mostrarAtaquesCombate(ataqueJ, ataqueE) {
+  // Elegimos un color distinto para que cada tipo de ataque se reconozca mas facil.
   function obtenerColor(ataque) {
     if (ataque === "FUEGO") return "#ff6b6b";
     if (ataque === "AGUA") return "#4dabf7";
@@ -589,8 +665,10 @@ function crearMensajeFinal(resultado) {
 }
 
 function mostrarMensajeEstado(mensaje) {
+  // Este mensaje se usa sobre todo cuando un jugador ya termino y esta esperando al rival.
   crearMensajeFinal(mensaje);
   sectionReiniciar.removeAttribute("hidden");
+  botonContinuar.setAttribute("hidden", true);
   botonReiniciar.setAttribute("hidden", true);
 }
 
@@ -602,6 +680,7 @@ function ocultarMensajeEstado() {
 function notificarResultadoCombate(resultado) {
   if (!jugadorId) return;
 
+  // Guardamos el resultado en el servidor para que ambas sesiones puedan sincronizarse.
   fetch(`/mokepon/${jugadorId}/resultado`, {
     method: "POST",
     headers: {
@@ -615,6 +694,103 @@ function notificarResultadoCombate(resultado) {
   });
 }
 
+function detenerEsperaDeContinuar() {
+  // Apagamos la consulta periodica cuando ya no hace falta revisar mas enemigos.
+  clearInterval(intervaloContinuar);
+  intervaloContinuar = null;
+}
+
+// Despues de una victoria, revisa si el combate ya se cerro y si quedan enemigos vivos.
+function esperarOpcionDeContinuar() {
+  if (intervaloContinuar) return;
+
+  intervaloContinuar = setInterval(verificarSiPuedeSeguirJugando, 250);
+}
+
+function verificarSiPuedeSeguirJugando() {
+  if (!jugadorId || !mascotaJugador) return;
+
+  // Reutilizamos la ruta de posicion para saber si todavia existe un combate activo
+  // y para actualizar la lista de enemigos que siguen vivos en el mapa.
+  fetch(`/mokepon/${jugadorId}/posicion`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      x: mascotaJugador.x,
+      y: mascotaJugador.y,
+    }),
+  })
+    .then(function (res) {
+      if (res.ok) {
+        res.json().then(function ({ enemigos, combate }) {
+          // Volvemos a construir la lista porque despues de un combate algun rival pudo haber desaparecido.
+          mokeponesEnemigos = enemigos
+            .map(function (enemigo) {
+              return crearMokeponEnemigoDesdeJugador(enemigo);
+            })
+            .filter(Boolean);
+
+          // Solo dejamos seguir cuando el combate anterior ya se cerró en el servidor
+          // y aun quedan enemigos vivos en el mapa.
+          if (!combate) {
+            detenerEsperaDeContinuar();
+
+            if (mokeponesEnemigos.length > 0) {
+              // Solo mostramos esta opcion cuando realmente vale la pena volver al mapa.
+              botonContinuar.removeAttribute("hidden");
+            }
+          }
+        });
+      }
+    })
+    .catch(function (error) {
+      console.error("No se pudo verificar si hay mas enemigos:", error);
+    });
+}
+
+function reiniciarEstadoDelCombate() {
+  // Detenemos cualquier proceso asociado al combate actual.
+  clearInterval(intervalo);
+  clearInterval(intervaloAtaques);
+  detenerEsperaDeContinuar();
+
+  intervalo = null;
+  intervaloAtaques = null;
+  ataqueJugador = [];
+  ataqueEnemigo = [];
+  victoriaJugador = 0;
+  victoriaEnemigo = 0;
+  // enemyId vuelve a null para no arrastrar la referencia del combate anterior.
+  enemigoId = null;
+  combateIniciado = false;
+
+  // Limpiamos el historial visual de la batalla anterior.
+  ataqueJugadorElem.innerHTML = "";
+  ataqueEnemigoElem.innerHTML = "";
+  victoriasJugadorElem.textContent = "0";
+  victoriasEnemigoElem.textContent = "0";
+  spanMascotaEnemigo.textContent = "";
+  mensajeFinalElem.innerHTML = "";
+
+  sectionAtaques.setAttribute("hidden", true);
+  ataquesSection.setAttribute("hidden", true);
+  sectionReiniciar.setAttribute("hidden", true);
+  botonContinuar.setAttribute("hidden", true);
+  botonReiniciar.setAttribute("hidden", true);
+}
+
+// Permite volver al mapa sin reiniciar toda la partida cuando todavia quedan enemigos.
+function continuarJugando() {
+  // Esta opcion devuelve al jugador al mapa manteniendo la misma sesion activa.
+  reiniciarEstadoDelCombate();
+  sectionVerMapa.removeAttribute("hidden");
+  iniciarMapa();
+  // Enviamos enseguida la posicion actual para reconstruir enemigos y estado compartido.
+  enviarPosicion(mascotaJugador.x, mascotaJugador.y);
+}
+
 /// =========================
 /// MAPA Y MOVIMIENTO
 /// =========================
@@ -622,13 +798,16 @@ function notificarResultadoCombate(resultado) {
 function pintarCanvas() {
   if (!mascotaJugador) return;
 
+  // Actualizamos la posicion usando la velocidad actual.
   mascotaJugador.x += mascotaJugador.velocidadX;
   mascotaJugador.y += mascotaJugador.velocidadY;
 
+  // En cada frame redibujamos todo desde cero: fondo, jugador y enemigos.
   lienzo.clearRect(0, 0, mapa.width, mapa.height);
   lienzo.drawImage(mapaBackground, 0, 0, mapa.width, mapa.height);
   mascotaJugador.pintarMokepon();
 
+  // Esta llamada mantiene el mapa sincronizado entre las distintas pestañas conectadas.
   enviarPosicion(mascotaJugador.x, mascotaJugador.y);
   // Dibujamos todos los enemigos que el servidor nos devuelve en cada actualizacion
   mokeponesEnemigos.forEach(function (mokeponEnemigo) {
@@ -671,6 +850,7 @@ function enviarPosicion(x, y) {
           // Si la otra ventana detecto la colision primero, el servidor nos devolvera el combate activo y
           // esta sesion tambien entrara a batalla.
           if (combate && !combateIniciado) {
+            // Esto resuelve el caso en que la otra pestaña detecta la colision antes que esta.
             const enemigoDeCombate = crearMokeponEnemigoDesdeJugador(combate);
 
             if (enemigoDeCombate) {
@@ -710,10 +890,12 @@ function moverAbajo() {
 
 function detenerMovimiento() {
   if (!mascotaJugador) return;
+  // Frenamos por completo en ambos ejes.
   mascotaJugador.velocidadX = 0;
   mascotaJugador.velocidadY = 0;
 }
 
+// Escucha las flechas del teclado y traduce esa tecla a una direccion de movimiento.
 function sePresionoUnaTecla(e) {
   e.preventDefault();
 
@@ -736,17 +918,23 @@ function sePresionoUnaTecla(e) {
 }
 
 function iniciarMapa() {
-  // Ajustamos tamaño del canvas
+  // Ajustamos el tamaño del canvas y activamos el repintado constante del mapa.
   mapa.width = 600;
   mapa.height = 400;
-  // Pintamos continuamente el personaje
   intervalo = setInterval(pintarCanvas, 50);
 
+  // Permitimos mover al personaje con teclado.
   window.addEventListener("keydown", sePresionoUnaTecla);
   window.addEventListener("keyup", detenerMovimiento);
 }
 
-function revisarColision(enemigo) {
+// Comprueba si la caja del jugador y la del enemigo se tocaron.
+async function revisarColision(enemigo) {
+  if (combateIniciado || colisionEnProceso) {
+    return;
+  }
+
+  // La colision se calcula comparando los bordes del rectangulo del jugador y del enemigo.
   const arribaEnemigo = enemigo.y;
   const abajoEnemigo = enemigo.y + enemigo.alto;
   const derechaEnemigo = enemigo.x + enemigo.ancho;
@@ -763,10 +951,22 @@ function revisarColision(enemigo) {
     derechaMascota < izquierdaEnemigo ||
     izquierdaMascota > derechaEnemigo
   ) {
+    // Si una caja no toca a la otra por algun lado, todavia no hay choque.
     return;
   }
-  notificarColision(enemigo.id);
-  iniciarCombateConEnemigo(enemigo);
+  // Mientras el servidor valida la colision, bloqueamos nuevas solicitudes para este jugador.
+  colisionEnProceso = true;
+
+  try {
+    // Solo iniciamos el combate si el servidor confirma que ese enemigo sigue libre.
+    const puedeIniciarCombate = await notificarColision(enemigo.id);
+
+    if (puedeIniciarCombate) {
+      iniciarCombateConEnemigo(enemigo);
+    }
+  } finally {
+    colisionEnProceso = false;
+  }
 }
 
 /// =========================
@@ -777,6 +977,7 @@ function activarSectionAtaque() {
   sectionAtaques.removeAttribute("hidden");
   ataquesSection.removeAttribute("hidden");
 
+  // Cada nueva batalla reactiva los botones hasta que el jugador termine su jugada.
   botones.forEach((boton) => {
     boton.disabled = false;
   });

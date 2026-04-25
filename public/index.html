@@ -8,23 +8,27 @@
     <!-- Este titulo aparece en la pestaña del navegador. -->
     <title>MOKEPON</title>
     <!-- Aqui conectamos la hoja de estilos que da diseno visual al juego. -->
-    <link rel="stylesheet" href="./style/style.css" />
+    <link rel="stylesheet" href="/assets/styles/main.css" />
   </head>
   <body>
     <h1 class="titulo">MOKEPON!</h1>
 
+    <!-- Pantalla inicial: aqui el jugador elige su mokepon antes de entrar al mapa. -->
     <section id="seleccionar-mascota">
       <h2>Elige tu Mokepon</h2>
 
+      <!-- Las tarjetas de personajes se insertan dinamicamente desde game.js. -->
       <div id="contenedor-tarjetas" class="contenedor-tarjetas"></div>
 
       <button id="boton-mascota">Seleccionar</button>
     </section>
 
+    <!-- Esta seccion contiene el canvas donde se dibuja el mapa y los personajes. -->
     <section id="ver-mapa">
       <h2>Recorre el mapa con tu mokepon</h2>
       <canvas id="mapa"></canvas>
 
+      <!-- Botones tactiles y de mouse para mover al personaje en celular o escritorio. -->
       <div class="movimiento">
         <button
           class="mov-btn arriba"
@@ -72,11 +76,13 @@
       </div>
     </section>
 
+    <!-- Botones de ataque que aparecen solo cuando empieza un combate. -->
     <section id="seleccionar-ataque" hidden>
       <h2>Elige tu Ataque</h2>
       <div id="contenedor-ataques" class="contenedor-ataques"></div>
     </section>
 
+    <!-- Marcador de victorias y registro visual de ataques de ambos jugadores. -->
     <section id="ataques" hidden>
       <div>
         <h4 id="vidas-jugador">0</h4>
@@ -91,12 +97,14 @@
       </div>
     </section>
 
+    <!-- Zona de mensajes finales: espera, resultado, seguir jugando o reiniciar. -->
     <section id="reiniciar" hidden>
       <div id="mensaje-final"></div>
+      <button id="boton-continuar" hidden>Seguir jugando</button>
       <button id="boton-reiniciar" hidden>Reiniciar Juego</button>
     </section>
     <!-- Este script carga toda la logica del juego en el navegador. -->
     <!-- Debes abrir este HTML desde http://localhost:8080 para que el fetch a /unirse funcione bien. -->
-    <script src="./js/mokepon.js"></script>
+    <script src="/assets/scripts/game.js"></script>
   </body>
 </html>

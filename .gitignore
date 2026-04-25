@@ -1,0 +1,26 @@
+# Dependencias instaladas por npm
+node_modules/
+
+# Variables de entorno locales
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Cache y cobertura
+.npm/
+.cache/
+coverage/
+
+# Archivos del sistema y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
