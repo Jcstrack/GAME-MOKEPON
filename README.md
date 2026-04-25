@@ -1,8 +1,12 @@
 # Mokepon
 
-Juego multijugador local desarrollado con `Node.js`, `Express`, `HTML`, `CSS` y `Canvas`.
+Proyecto desarrollado como ejercicio práctico de Platzi para trabajar conceptos de `Node.js`, `Express`, `HTML`, `CSS` y `Canvas`.
 
 El proyecto permite que varios jugadores entren desde distintas pestañas, elijan un mokepon, recorran un mapa compartido y peleen cuando colisionan.
+
+## Contexto
+
+Este repositorio corresponde a una práctica/ejercicio académico basado en el proyecto Mokepon de Platzi. La idea principal es reforzar conceptos de frontend, backend, canvas, eventos del navegador y sincronización básica entre jugadores.
 
 ## Características principales
 
