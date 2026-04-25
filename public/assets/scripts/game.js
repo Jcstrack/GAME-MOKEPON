@@ -929,7 +929,7 @@ function iniciarMapa() {
 }
 
 // Comprueba si la caja del jugador y la del enemigo se tocaron.
-async function revisarColision(enemigo) {
+function revisarColision(enemigo) {
   if (combateIniciado || colisionEnProceso) {
     return;
   }
@@ -957,16 +957,16 @@ async function revisarColision(enemigo) {
   // Mientras el servidor valida la colision, bloqueamos nuevas solicitudes para este jugador.
   colisionEnProceso = true;
 
-  try {
-    // Solo iniciamos el combate si el servidor confirma que ese enemigo sigue libre.
-    const puedeIniciarCombate = await notificarColision(enemigo.id);
-
-    if (puedeIniciarCombate) {
-      iniciarCombateConEnemigo(enemigo);
-    }
-  } finally {
-    colisionEnProceso = false;
-  }
+  // Solo iniciamos el combate si el servidor confirma que ese enemigo sigue libre.
+  notificarColision(enemigo.id)
+    .then(function (puedeIniciarCombate) {
+      if (puedeIniciarCombate) {
+        iniciarCombateConEnemigo(enemigo);
+      }
+    })
+    .finally(function () {
+      colisionEnProceso = false;
+    });
 }
 
 /// =========================
