@@ -1,0 +1,330 @@
+* {
+  font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 🔹 body */
+body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100dvh;
+  background: url("../img/Pinwheel-Forest_wallpaper-1920x1080.jpg") no-repeat
+    center / cover;
+  gap: 20px;
+  padding: 30px 20px;
+}
+
+/* 🔹 título */
+.titulo {
+  font-size: 100px;
+  font-weight: bold;
+  background: linear-gradient(90deg, #00c9a7, #00b4d8);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.25));
+}
+
+/* 🔹 secciones */
+#seleccionar-mascota,
+#seleccionar-ataque,
+#ataques,
+#reiniciar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 15px;
+  padding: 20px 40px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: min(90%, 700px);
+}
+
+/* 🔹 títulos */
+h2 {
+  margin-bottom: 20px;
+  color: white;
+}
+
+/* 🔹 contenedor tarjetas */
+.contenedor-tarjetas {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* 🔹 tarjetas */
+.tarjeta-de-mokepon {
+  user-select: none;
+  width: 140px;
+  height: 140px;
+  color: white;
+  font-weight: bold;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  padding: 15px;
+  text-align: center;
+  cursor: pointer;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  background-color: rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  text-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.8),
+    0 0 8px rgba(0, 0, 0, 0.6),
+    0 0 2px rgba(0, 0, 0, 1);
+}
+
+/* 🔥 overlay oscuro suave */
+.tarjeta-de-mokepon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  transition: 0.3s ease;
+  z-index: 0;
+}
+
+.tarjeta-de-mokepon {
+  z-index: 1;
+}
+
+/* 🔹 hover */
+.tarjeta-de-mokepon:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.3);
+  text-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.9),
+    0 0 10px rgba(0, 0, 0, 0.7);
+}
+
+.tarjeta-de-mokepon:hover::before {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* 🔹 radio oculto */
+input[type="radio"] {
+  display: none;
+}
+
+/* 🔹 seleccionado */
+input[type="radio"]:checked + .tarjeta-de-mokepon {
+  transform: scale(1.05);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 1);
+}
+
+input[type="radio"]:checked + .tarjeta-de-mokepon::before {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* 🔹 botones generales */
+button {
+  font-weight: 800;
+  font-size: 15px;
+  margin-top: 20px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  color: white;
+  background: linear-gradient(135deg, #2ec4b6, #1b9aaa);
+  transition: all 0.3s ease;
+}
+
+button:not(:disabled):hover {
+  transform: translateY(-3px);
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+}
+
+button:not(:disabled):active {
+  transform: translateY(0);
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0));
+}
+
+button:disabled {
+  background: linear-gradient(135deg, #7ebbb5, #6fa7a2);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* 🔹 ataques */
+.contenedor-ataques {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.boton-fuego {
+  background: linear-gradient(135deg, #ff6b6b, #e63946);
+}
+
+.boton-agua {
+  background: linear-gradient(135deg, #4dabf7, #1c7ed6);
+}
+
+.boton-tierra {
+  background: linear-gradient(135deg, #51cf66, #2b8a3e);
+}
+
+/* 🔹 mensajes */
+#mensaje-final p,
+#ataques p {
+  margin: 8px 0;
+  padding: 10px;
+  width: 100%;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+#ataques {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+#ataques div {
+  justify-items: center;
+}
+
+#vidas-enemigo,
+#vidas-jugador {
+  font-weight: bold;
+  font-size: 35px;
+  text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.9);
+}
+
+#mascota-enemigo,
+#mascota-jugador,
+#ataques-del-enemigo,
+#ataques-del-jugador {
+  text-align: center;
+  text-shadow: 0px 3px 6px rgba(0, 0, 0, 0.9);
+  font-weight: 600;
+  width: 100%;
+}
+
+#mascota-enemigo,
+#mascota-jugador {
+  background-color: rgb(174, 174, 11) !important;
+}
+
+/* 🔹 mapa */
+#ver-mapa {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: min(90%, 700px);
+  border-radius: 15px;
+  padding: 20px 40px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+#mapa {
+  border: solid 2px white;
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 20px;
+}
+
+/* 🔥 cruceta de movimiento */
+.movimiento {
+  display: grid;
+  grid-template-columns: repeat(3, 50px);
+  grid-template-rows: repeat(3, 50px);
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+
+/* estilo solo para los botones de movimiento */
+.mov-btn {
+  width: 50px;
+  height: 50px;
+  margin-top: 0;
+  padding: 0;
+  font-size: 28px;
+  font-weight: bold;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* posiciones de la cruceta */
+.arriba {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.izquierda {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.derecha {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.abajo {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+@media (max-width: 768px) {
+  .titulo {
+    font-size: 60px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  .contenedor-tarjetas {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .contenedor-ataques {
+    width: 100%;
+    gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+  }
+
+  .movimiento {
+    grid-template-columns: repeat(3, 60px);
+    grid-template-rows: repeat(3, 60px);
+    gap: 8px;
+  }
+
+  .mov-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+  }
+}

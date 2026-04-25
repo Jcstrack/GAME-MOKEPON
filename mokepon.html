@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <!-- UTF-8 permite que el navegador lea correctamente tildes, simbolos y caracteres especiales. -->
+    <meta charset="UTF-8" />
+    <!-- viewport hace que la pagina se adapte mejor al ancho de celulares y tablets. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Este titulo aparece en la pestaña del navegador. -->
+    <title>MOKEPON</title>
+    <!-- Aqui conectamos la hoja de estilos que da diseno visual al juego. -->
+    <link rel="stylesheet" href="./style/style.css" />
+  </head>
+  <body>
+    <h1 class="titulo">MOKEPON!</h1>
+
+    <section id="seleccionar-mascota">
+      <h2>Elige tu Mokepon</h2>
+
+      <div id="contenedor-tarjetas" class="contenedor-tarjetas"></div>
+
+      <button id="boton-mascota">Seleccionar</button>
+    </section>
+
+    <section id="ver-mapa">
+      <h2>Recorre el mapa con tu mokepon</h2>
+      <canvas id="mapa"></canvas>
+
+      <div class="movimiento">
+        <button
+          class="mov-btn arriba"
+          ontouchstart="moverArriba()"
+          ontouchend="detenerMovimiento()"
+          onmousedown="moverArriba()"
+          onmouseup="detenerMovimiento()"
+          onmouseleave="detenerMovimiento()"
+        >
+          ↑
+        </button>
+
+        <button
+          class="mov-btn izquierda"
+          ontouchstart="moverIzquierda()"
+          ontouchend="detenerMovimiento()"
+          onmousedown="moverIzquierda()"
+          onmouseup="detenerMovimiento()"
+          onmouseleave="detenerMovimiento()"
+        >
+          ←
+        </button>
+
+        <button
+          class="mov-btn derecha"
+          ontouchstart="moverDerecha()"
+          ontouchend="detenerMovimiento()"
+          onmousedown="moverDerecha()"
+          onmouseup="detenerMovimiento()"
+          onmouseleave="detenerMovimiento()"
+        >
+          →
+        </button>
+
+        <button
+          class="mov-btn abajo"
+          ontouchstart="moverAbajo()"
+          ontouchend="detenerMovimiento()"
+          onmousedown="moverAbajo()"
+          onmouseup="detenerMovimiento()"
+          onmouseleave="detenerMovimiento()"
+        >
+          ↓
+        </button>
+      </div>
+    </section>
+
+    <section id="seleccionar-ataque" hidden>
+      <h2>Elige tu Ataque</h2>
+      <div id="contenedor-ataques" class="contenedor-ataques"></div>
+    </section>
+
+    <section id="ataques" hidden>
+      <div>
+        <h4 id="vidas-jugador">0</h4>
+        <p id="mascota-jugador"></p>
+        <div id="ataques-del-jugador"></div>
+      </div>
+
+      <div>
+        <h4 id="vidas-enemigo">0</h4>
+        <p id="mascota-enemigo"></p>
+        <div id="ataques-del-enemigo"></div>
+      </div>
+    </section>
+
+    <section id="reiniciar" hidden>
+      <div id="mensaje-final"></div>
+      <button id="boton-reiniciar" hidden>Reiniciar Juego</button>
+    </section>
+    <!-- Este script carga toda la logica del juego en el navegador. -->
+    <!-- Debes abrir este HTML desde http://localhost:8080 para que el fetch a /unirse funcione bien. -->
+    <script src="./js/mokepon.js"></script>
+  </body>
+</html>
